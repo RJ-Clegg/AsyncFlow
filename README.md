@@ -75,7 +75,6 @@ struct TransactionEndpoint: APIRequest {
 ## Requirements
 - iOS 17.0+ / macOS 14.0+
 - Swift 5.5+
-- 
 
 ## Contributions
 Contributions are welcome! Feel free to open issues and submit pull requests.

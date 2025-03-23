@@ -1,6 +1,7 @@
 # AsyncFlow
 
 **AsyncFlow** is a Swift package designed to simplify and streamline async networking in Swift applications. It provides a clean and structured approach to handling asynchronous API calls with modern Swift concurrency.
+![GitHub Actions](https://github.com/RJ-Clegg/AsyncFlow/actions/workflows/build.yml/badge.svg)
 
 ## Features
 - **Lightweight & Efficient** – Built with Swift Concurrency (`async/await`).

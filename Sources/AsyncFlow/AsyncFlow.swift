@@ -14,6 +14,7 @@ public protocol AsyncFlowProtocol {
 public struct AsyncFlow: AsyncFlowProtocol, Sendable {
     private(set) var environment: APIEnvironment  // The environment configuration for the network session.
     private var session: NetworkSession       // The network session used for making requests.
+    private static let lock = DispatchQueue(label: "com.asyncflow.singleton.lock")
 
     /// A private static variable holding the singleton instance.
     nonisolated(unsafe) private static var _intenalShared: AsyncFlow?
@@ -21,14 +22,15 @@ public struct AsyncFlow: AsyncFlowProtocol, Sendable {
     /// The shared instance of `AsyncFlow` that can be used globally.
     ///
     /// This is a thread-safe singleton pattern. If the singleton is not set explicitly, it defaults to using a `DEV` environment.
-    public static let shared: AsyncFlow = {
-        guard let shared = _intenalShared else {
-            debugPrint("You did not explicitly set the nvironment so we will default to DEV")
-            _intenalShared = AsyncFlow(environment: APIEnvironment())
+    public static var shared: AsyncFlow {
+        lock.sync {
+            if _intenalShared == nil {
+                debugPrint("You did not explicitly set the environment, so we will default to DEV")
+                _intenalShared = AsyncFlow(environment: APIEnvironment())
+            }
             return _intenalShared!
         }
-        return shared
-    }()
+    }
 
     /// Private initializer to create the `AsyncFlow` instance with an environment and an optional URLSession.
     /// - Parameters:

@@ -14,6 +14,7 @@ public protocol AsyncFlowProtocol {
 public struct AsyncFlow: AsyncFlowProtocol, Sendable {
     private(set) var environment: APIEnvironment  // The environment configuration for the network session.
     private var session: NetworkSession       // The network session used for making requests.
+    private static var isLoggingEnabled = false
 
     /// A private static variable holding the singleton instance.
     nonisolated(unsafe) private static var _intenalShared: AsyncFlow?
@@ -70,6 +71,12 @@ public extension AsyncFlow {
             keyDecodingStrategy: apiRequest.keyDecodingStrategy
         )
     }
+
+    /// Enables or disables logging of the JSON response for debugging purposes.
+    /// - Parameter loggingEnabled: Pass `true` to enable logging, or `false` to disable it.
+    static func set(loggingEnabled: Bool) {
+        isLoggingEnabled = loggingEnabled
+    }
 }
 
 private extension AsyncFlow {
@@ -105,11 +112,22 @@ private extension AsyncFlow {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         decoder.keyDecodingStrategy = keyDecodingStrategy
+        AsyncFlow.logResponseIfNeeded(data)
 
         do {
             return try decoder.decode(Model.self, from: data)
         } catch {
             throw APIError.failedParsing(localizedDescription: "\(error)")
+        }
+    }
+
+    private static func logResponseIfNeeded(_ data: Data) {
+        guard isLoggingEnabled else { return }
+
+        if let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []),
+           let prettyData = try? JSONSerialization.data(withJSONObject: jsonObject, options: .prettyPrinted),
+           let prettyString = String(data: prettyData, encoding: .utf8) {
+            debugPrint("JSON Response:\n\(prettyString)")
         }
     }
 }

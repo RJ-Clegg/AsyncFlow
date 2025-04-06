@@ -20,16 +20,12 @@ public struct AsyncFlow: AsyncFlowProtocol, Sendable {
     nonisolated(unsafe) private static var _intenalShared: AsyncFlow?
 
     /// The shared instance of `AsyncFlow` that can be used globally.
-    ///
-    /// This is a thread-safe singleton pattern. If the singleton is not set explicitly, it defaults to using a `DEV` environment.
     public static var shared: AsyncFlow {
-        lock.sync {
-            if _intenalShared == nil {
-                debugPrint("You did not explicitly set the environment, so we will default to DEV")
-                _intenalShared = AsyncFlow(environment: APIEnvironment())
-            }
-            return _intenalShared!
+        if _intenalShared == nil {
+            debugPrint("You did not explicitly set the environment, so we will default to DEV")
+            _intenalShared = AsyncFlow(environment: APIEnvironment())
         }
+        return _intenalShared!
     }
 
     /// Private initializer to create the `AsyncFlow` instance with an environment and an optional URLSession.

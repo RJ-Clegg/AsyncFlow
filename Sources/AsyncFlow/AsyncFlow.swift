@@ -66,6 +66,7 @@ public extension AsyncFlow {
             throw APIError.invalidResponse(statusCode: httpResponse.statusCode)
         }
 
+        AsyncFlow.logResponseIfNeeded(for: request, data: data)
         return try decodeResultsIfPossible(
             data,
             keyDecodingStrategy: apiRequest.keyDecodingStrategy
@@ -112,7 +113,6 @@ private extension AsyncFlow {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         decoder.keyDecodingStrategy = keyDecodingStrategy
-        AsyncFlow.logResponseIfNeeded(data)
 
         do {
             return try decoder.decode(Model.self, from: data)
@@ -121,13 +121,15 @@ private extension AsyncFlow {
         }
     }
 
-    private static func logResponseIfNeeded(_ data: Data) {
+    private static func logResponseIfNeeded(for request: URLRequest, data: Data) {
         guard isLoggingEnabled else { return }
 
         if let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []),
            let prettyData = try? JSONSerialization.data(withJSONObject: jsonObject, options: .prettyPrinted),
            let prettyString = String(data: prettyData, encoding: .utf8) {
-            debugPrint("JSON Response:\n\(prettyString)")
+            if let url = request.url {
+                print("Request: \(url.absoluteString)  \n JSON Response:\n\(prettyString)")
+            }
         }
     }
 }

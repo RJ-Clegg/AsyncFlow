@@ -1,14 +1,13 @@
-import XCTest
+import Foundation
+import Testing
 @testable import AsyncFlow
 
-final class AsyncFlowTests: XCTestCase {
+struct AsyncFlowTests {
+    private let asyncFlow: AsyncFlow
+    private let apiEnviroment: APIEnvironment
+    private let mockSession: MockNetworkSession
 
-    private var asyncFlow: AsyncFlow!
-    private var apiEnviroment: APIEnvironment!
-    private var mockSession: MockNetworkSession!
-
-    override func setUp() {
-        super.setUp()
+    init() async throws {
         mockSession = MockNetworkSession()
         apiEnviroment = APIEnvironment(
             devUrl: "https://www.dev.com",
@@ -21,14 +20,8 @@ final class AsyncFlowTests: XCTestCase {
         asyncFlow = .shared
     }
 
-    override func tearDown() {
-        asyncFlow = nil
-        mockSession = nil
-        super.tearDown()
-    }
-
-    // MARK: - Test Successful Request
-    func testSuccessfulDataFetch() async throws {
+    @Test("Fetching data is successful")
+    func successfulDataFetch() async throws {
         let mockData = """
         {
             "id": 1,
@@ -43,19 +36,15 @@ final class AsyncFlowTests: XCTestCase {
             httpVersion: nil,
             headerFields: nil
         )
-
-        struct User: Decodable {
-            let id: Int
-            let name: String
-        }
 
         let user: User = try await asyncFlow.data(for: MockApiRequest())
 
-        XCTAssertEqual(user.id, 1)
-        XCTAssertEqual(user.name, "Test User")
+        #expect(user.id == 1, "User ID should be 1")
+        #expect(user.name == "Test User", "Username should be: Test User")
     }
 
-    func testSuccessfulDataFetchWithBodyInRequest() async throws {
+    @Test("Fetch with body is successfull")
+    func successfulDataFetchWithBodyInRequest() async throws {
         let mockData = """
         {
             "id": 1,
@@ -70,22 +59,17 @@ final class AsyncFlowTests: XCTestCase {
             httpVersion: nil,
             headerFields: nil
         )
-
-        struct User: Codable {
-            let id: Int
-            let name: String
-        }
 
         var request = MockApiRequest()
         request.hasBody = true
 
         let user: User = try await asyncFlow.data(for: request)
 
-        XCTAssertEqual(user.id, 1)
-        XCTAssertEqual(user.name, "Test User")
+        #expect(user.id == 1, "User ID should be 1")
+        #expect(user.name == "Test User", "Username should be: Test User")
     }
 
-    // MARK: - Test Invalid HTTP Response
+    @Test("Invalid HTTP responses")
     func testInvalidResponseThrowsError() async {
         mockSession.response = HTTPURLResponse(
             url: URL(string: "https://example.com")!,
@@ -103,14 +87,15 @@ final class AsyncFlowTests: XCTestCase {
 
         do {
             let _: String = try await asyncFlow.data(for: MockApiRequest())
-            XCTFail("Expected error but got success")
+            Issue.record("Expected error but got success")
         } catch let error as APIError {
-            XCTAssertEqual(error, .invalidResponse(statusCode: 500))
+            #expect(error == .invalidResponse(statusCode: 500))
         } catch {
-            XCTFail("Unexpected error type: \(error)")
+            Issue.record("Unexpected error type: \(error)")
         }
     }
 
+    @Test("Throws an error if no data")
     func testNoResponseThrowsError() async {
         mockSession.response = URLResponse()
         mockSession.data = """
@@ -122,15 +107,16 @@ final class AsyncFlowTests: XCTestCase {
 
         do {
             let _: String = try await asyncFlow.data(for: MockApiRequest())
-            XCTFail("Expected error but got success")
+            Issue.record("Expected error but got success")
         } catch let error as APIError {
-            XCTAssertEqual(error, .invalidResponseType)
+            #expect(error == .invalidResponseType)
         } catch {
-            XCTFail("Unexpected error type: \(error)")
+            Issue.record("Unexpected error type: \(error)")
+
         }
     }
 
-    // MARK: - Test Decoding Failure
+    @Test("Decoding failure throws error")
     func testDecodingFailureThrowsError() async {
         let invalidData = "invalid json".data(using: .utf8)!
 
@@ -142,23 +128,20 @@ final class AsyncFlowTests: XCTestCase {
             headerFields: nil
         )
 
-        struct User: Decodable {
-            let id: Int
-            let name: String
-        }
-
         do {
             let _: User = try await asyncFlow.data(for: MockApiRequest())
-            XCTFail("Expected decoding error but got success")
+            Issue.record("Expected error but got success")
         } catch let error as APIError {
-            XCTAssertTrue(error.localizedDescription.contains("Failed to parse the response. Error:"))
+            #expect(error.localizedDescription.contains("Failed to parse the response. Error:"))
         } catch {
-            XCTFail("Unexpected error type: \(error)")
+            Issue.record("Unexpected error type: \(error)")
         }
     }
+}
 
-    // MARK: - Test Singleton Setup
-    func testSharedInstanceDefaultSetup() {
-        XCTAssertNotNil(AsyncFlow.shared)
+private extension AsyncFlowTests {
+    struct User: Decodable {
+        let id: Int
+        let name: String
     }
 }

@@ -4,49 +4,43 @@
 //
 //  Created by Robert Clegg on 2025/03/23.
 //
-
-import XCTest
+import Testing
 @testable import AsyncFlow
 
-final class AsyncFlowEnvironmentTests: XCTestCase {
+struct AsyncFlowEnvironmentTests {
 
-    // MARK: - Test Environment Enum
-    func testAsyncFlowEnvironmentRawValues() {
-        XCTAssertEqual(AsyncFlowEnvironment.dev.rawValue, "dev")
-        XCTAssertEqual(AsyncFlowEnvironment.prod.rawValue, "prod")
+    @Test("AsyncFlow Enviroment RawValues Values")
+    func asyncFlowEnvironmentRawValues() {
+        #expect(AsyncFlowEnvironment.dev.rawValue == "dev", "Rawvalue should be 'dev'")
+        #expect(AsyncFlowEnvironment.prod.rawValue == "prod", "Rawvalue should be 'prod'")
     }
 
-    // MARK: - Test APIEnvironment Initialization
-    func testAPIEnvironmentInitialization() {
+    @Test("AsyncFlow Enviroment Setup PROD")
+    func aPIEnvironmentInitialization() {
+        let expectedURL = "https://prod.example.com"
+        let token = "sdgfsfdgsdg54w6453tyhdfgfds"
+
         let env = APIEnvironment(
             devUrl: "https://dev.example.com",
-            prodUrl: "https://prod.example.com",
+            prodUrl: expectedURL,
             enviroment: .prod,
-            authToken: "test_token"
+            authToken: token
         )
 
-        XCTAssertEqual(env.baseURL, "https://prod.example.com")
-        XCTAssertEqual(env.authToken, "test_token")
+        #expect(env.baseURL == expectedURL)
+        #expect(env.authToken == token)
     }
 
-    // MARK: - Test Base URL Selection
+    @Test("AsyncFlow Enviroment Setup DEV")
     func testBaseURLForDevEnvironment() {
+        let expectedURL = "https://dev.example.com"
+
         let env = APIEnvironment(
-            devUrl: "https://dev.example.com",
+            devUrl: expectedURL,
             prodUrl: "https://prod.example.com",
             enviroment: .dev
         )
 
-        XCTAssertEqual(env.baseURL, "https://dev.example.com")
-    }
-
-    func testBaseURLForProdEnvironment() {
-        let env = APIEnvironment(
-            devUrl: "https://dev.example.com",
-            prodUrl: "https://prod.example.com",
-            enviroment: .prod
-        )
-
-        XCTAssertEqual(env.baseURL, "https://prod.example.com")
+        #expect(env.baseURL == expectedURL)
     }
 }

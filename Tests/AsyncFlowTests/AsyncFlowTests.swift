@@ -10,13 +10,12 @@ struct AsyncFlowTests {
     init() async throws {
         mockSession = MockNetworkSession()
         apiEnviroment = APIEnvironment(
-            devUrl: "https://www.dev.com",
-            prodUrl: "https://www.prod.com",
-            enviroment: .dev,
+            baseURL: "https://www.dev.com",
             authToken: "token"
         )
 
         AsyncFlow.setup(environment: apiEnviroment, session: mockSession)
+        AsyncFlow.set(loggingEnabled: true)
         asyncFlow = .shared
     }
 

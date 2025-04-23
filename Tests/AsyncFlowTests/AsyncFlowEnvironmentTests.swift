@@ -9,38 +9,17 @@ import Testing
 
 struct AsyncFlowEnvironmentTests {
 
-    @Test("AsyncFlow Enviroment RawValues Values")
-    func asyncFlowEnvironmentRawValues() {
-        #expect(AsyncFlowEnvironment.dev.rawValue == "dev", "Rawvalue should be 'dev'")
-        #expect(AsyncFlowEnvironment.prod.rawValue == "prod", "Rawvalue should be 'prod'")
-    }
-
-    @Test("AsyncFlow Enviroment Setup PROD")
+    @Test("AsyncFlow Enviroment Setup")
     func aPIEnvironmentInitialization() {
-        let expectedURL = "https://prod.example.com"
+        let expectedURL = "https://dev.example.com"
         let token = "sdgfsfdgsdg54w6453tyhdfgfds"
 
         let env = APIEnvironment(
-            devUrl: "https://dev.example.com",
-            prodUrl: expectedURL,
-            enviroment: .prod,
+            baseURL: "https://dev.example.com",
             authToken: token
         )
 
         #expect(env.baseURL == expectedURL)
         #expect(env.authToken == token)
-    }
-
-    @Test("AsyncFlow Enviroment Setup DEV")
-    func testBaseURLForDevEnvironment() {
-        let expectedURL = "https://dev.example.com"
-
-        let env = APIEnvironment(
-            devUrl: expectedURL,
-            prodUrl: "https://prod.example.com",
-            enviroment: .dev
-        )
-
-        #expect(env.baseURL == expectedURL)
     }
 }

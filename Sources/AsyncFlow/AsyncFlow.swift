@@ -23,7 +23,7 @@ public struct AsyncFlow: AsyncFlowProtocol, Sendable {
     public static var shared: AsyncFlow {
         if _intenalShared == nil {
             debugPrint("You did not explicitly set the environment, so we will default to DEV")
-            _intenalShared = AsyncFlow(environment: APIEnvironment())
+            _intenalShared = AsyncFlow(environment: APIEnvironment(baseURL: ""))
         }
         return _intenalShared!
     }

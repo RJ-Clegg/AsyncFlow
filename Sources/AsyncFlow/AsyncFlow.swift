@@ -12,7 +12,7 @@ public protocol AsyncFlowProtocol {
 
 /// A lightweight client that performs asynchronous network operations.
 public struct AsyncFlow: AsyncFlowProtocol, Sendable {
-    private let configuration: AsyncFlowConfiguration
+    public let config: AsyncFlowConfiguration
     private let session: any NetworkSession
     private let isLoggingEnabled: Bool
 
@@ -24,7 +24,7 @@ public struct AsyncFlow: AsyncFlowProtocol, Sendable {
     public init(configuration: AsyncFlowConfiguration,
                 session: any NetworkSession = URLSession(configuration: .default),
                 loggingEnabled: Bool = false) {
-        self.configuration = configuration
+        self.config = configuration
         self.session = session
         self.isLoggingEnabled = loggingEnabled
     }
@@ -37,7 +37,7 @@ public extension AsyncFlow {
     /// - Returns: A decoded model object of type `Model`.
     /// - Throws: An error if the network request fails or the data cannot be decoded.
     func data<Model: Decodable>(for apiRequest: APIRequest) async throws -> Model {
-        let configurationSnapshot = await configuration.snapshot()
+        let configurationSnapshot = await config.snapshot()
         let request = request(for: apiRequest, configuration: configurationSnapshot)
         let (data, urlResponse) = try await session.data(for: request)
 

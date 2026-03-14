@@ -37,7 +37,7 @@ let apiClient = AsyncFlow(configuration: configuration)
 To switch environments at runtime:
 
 ```swift
-await configuration.setEnvironment(
+await apiClient.config.setEnvironment(
     APIEnvironment(baseURL: URL(string: "https://api.company.com")!)
 )
 ```
@@ -45,7 +45,7 @@ await configuration.setEnvironment(
 To update auth independently:
 
 ```swift
-await configuration.setAuthorizationHeaderValue("Bearer <NewToken>")
+await apiClient.config.setAuthorizationHeaderValue("Bearer <NewToken>")
 ```
 ## Usage
 

@@ -7,18 +7,13 @@
 
 import Foundation
 
-/// A struct representing the configuration for the environment, including URLs for both development and production.
-public struct APIEnvironment: Sendable {
-    let baseURL: String
-    let authToken: String
+/// A struct representing the active backend environment.
+public struct APIEnvironment: Sendable, Equatable {
+    public let baseURL: URL
 
-    /// Initializes the environment configuration with URLs for both environments.
-    /// - Parameters:
-    ///   - baseURL: The base URL for the development environment.
-    ///   - prodUrl: The base URL for the production environment.
-    public init(baseURL: String,
-                authToken: String = "") {
+    /// Initializes the environment configuration.
+    /// - Parameter baseURL: The base URL for the active environment.
+    public init(baseURL: URL) {
         self.baseURL = baseURL
-        self.authToken = authToken
     }
 }

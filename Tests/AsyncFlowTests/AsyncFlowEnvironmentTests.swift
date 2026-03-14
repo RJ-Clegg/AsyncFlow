@@ -4,6 +4,7 @@
 //
 //  Created by Robert Clegg on 2025/03/23.
 //
+import Foundation
 import Testing
 @testable import AsyncFlow
 
@@ -11,15 +12,12 @@ struct AsyncFlowEnvironmentTests {
 
     @Test("AsyncFlow Enviroment Setup")
     func aPIEnvironmentInitialization() {
-        let expectedURL = "https://dev.example.com"
-        let token = "sdgfsfdgsdg54w6453tyhdfgfds"
+        let expectedURL = URL(string: "https://dev.example.com")!
 
         let env = APIEnvironment(
-            baseURL: "https://dev.example.com",
-            authToken: token
+            baseURL: expectedURL
         )
 
         #expect(env.baseURL == expectedURL)
-        #expect(env.authToken == token)
     }
 }

@@ -2,12 +2,12 @@
 
 **AsyncFlow** is a Swift package designed to simplify and streamline async networking in Swift applications. It provides a clean and structured approach to handling asynchronous API calls with modern Swift concurrency.
 
-
 ## Features
 - **Lightweight & Efficient** – Built with Swift Concurrency (`async/await`).
 - **Protocol-Oriented** – Easily extend and customize for different networking needs.
 - **Error Handling** – Provides robust error handling for network requests.
 - **Composable API** – Designed for reusability and modularity.
+- **Runtime Configuration** – Switch environments and auth values without recreating the client.
 
 ## Installation
 ### Swift Package Manager (SPM)
@@ -21,17 +21,31 @@
 
 ## Setup 
 
-Where appropriate (AppDelegate etc) 
+Create a shared configuration and inject the client where you need it.
 
 ```swift
-     let env = APIEnvironment(
-            devUrl: "https://api-sandbox.company.com",
-            prodUrl: "https://api.company.com",
-            enviroment: .dev, 
-            authToken: "<Token>"
-        )
+let configuration = AsyncFlowConfiguration(
+    environment: APIEnvironment(
+        baseURL: URL(string: "https://api-sandbox.company.com")!
+    ),
+    authorizationHeaderValue: "<Token>"
+)
 
-        AsyncFlow.setup(environment: env)
+let apiClient = AsyncFlow(configuration: configuration)
+```
+
+To switch environments at runtime:
+
+```swift
+await configuration.setEnvironment(
+    APIEnvironment(baseURL: URL(string: "https://api.company.com")!)
+)
+```
+
+To update auth independently:
+
+```swift
+await configuration.setAuthorizationHeaderValue("Bearer <NewToken>")
 ```
 ## Usage
 
@@ -75,7 +89,7 @@ struct TransactionEndpoint: APIRequest {
 
 ## Requirements
 - iOS 17.0+ / macOS 14.0+
-- Swift 5.5+
+- Swift 6.0+
 
 ## Contributions
 Contributions are welcome! Feel free to open issues and submit pull requests.

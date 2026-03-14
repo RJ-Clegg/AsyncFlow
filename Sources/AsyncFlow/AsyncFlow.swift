@@ -10,41 +10,23 @@ public protocol AsyncFlowProtocol {
     func data<Model: Decodable>(for apiRequest: APIRequest) async throws -> Model
 }
 
-/// A singleton class that handles network requests and manages environment configurations.
+/// A lightweight client that performs asynchronous network operations.
 public struct AsyncFlow: AsyncFlowProtocol, Sendable {
-    private(set) var environment: APIEnvironment  // The environment configuration for the network session.
-    private var session: NetworkSession       // The network session used for making requests.
-    nonisolated(unsafe) private static var isLoggingEnabled = false
+    private let configuration: AsyncFlowConfiguration
+    private let session: any NetworkSession
+    private let isLoggingEnabled: Bool
 
-    /// A private static variable holding the singleton instance.
-    nonisolated(unsafe) private static var _intenalShared: AsyncFlow?
-
-    /// The shared instance of `AsyncFlow` that can be used globally.
-    public static var shared: AsyncFlow {
-        if _intenalShared == nil {
-            debugPrint("You did not explicitly set the environment, so we will default to DEV")
-            _intenalShared = AsyncFlow(environment: APIEnvironment(baseURL: ""))
-        }
-        return _intenalShared!
-    }
-
-    /// Private initializer to create the `AsyncFlow` instance with an environment and an optional URLSession.
+    /// Creates an `AsyncFlow` instance with runtime configuration and an optional URL session.
     /// - Parameters:
-    ///   - environment: The environment configuration (e.g., dev, prod).
+    ///   - configuration: The runtime configuration used to resolve environment and auth values.
     ///   - session: The network session for making requests (default is `URLSession`).
-    private init(environment: APIEnvironment,
-                 session: NetworkSession = URLSession(configuration: .default)) {
-        self.environment = environment
+    ///   - loggingEnabled: Whether to pretty-print JSON responses for debugging.
+    public init(configuration: AsyncFlowConfiguration,
+                session: any NetworkSession = URLSession(configuration: .default),
+                loggingEnabled: Bool = false) {
+        self.configuration = configuration
         self.session = session
-    }
-
-    /// Sets up the singleton instance of `AsyncFlow` with a specified environment and network session.
-    /// - Parameters:
-    ///   - environment: The environment configuration to set.
-    ///   - session: The network session to use for requests (default is `URLSession`).
-    public static func setup(environment: APIEnvironment,
-                             session: NetworkSession = URLSession(configuration: .default)) {
-        _intenalShared = AsyncFlow(environment: environment, session: session)
+        self.isLoggingEnabled = loggingEnabled
     }
 }
 
@@ -55,7 +37,8 @@ public extension AsyncFlow {
     /// - Returns: A decoded model object of type `Model`.
     /// - Throws: An error if the network request fails or the data cannot be decoded.
     func data<Model: Decodable>(for apiRequest: APIRequest) async throws -> Model {
-        let request = request(for: apiRequest)
+        let configurationSnapshot = await configuration.snapshot()
+        let request = request(for: apiRequest, configuration: configurationSnapshot)
         let (data, urlResponse) = try await session.data(for: request)
 
         guard let httpResponse = urlResponse as? HTTPURLResponse else {
@@ -66,50 +49,82 @@ public extension AsyncFlow {
             throw APIError.invalidResponse(statusCode: httpResponse.statusCode)
         }
 
-        AsyncFlow.logResponseIfNeeded(for: request, data: data)
+        logResponseIfNeeded(for: request, data: data)
         return try decodeResultsIfPossible(
             data,
             keyDecodingStrategy: apiRequest.keyDecodingStrategy
         )
     }
-
-    /// Enables or disables logging of the JSON response for debugging purposes.
-    /// - Parameter loggingEnabled: Pass `true` to enable logging, or `false` to disable it.
-    static func set(loggingEnabled: Bool) {
-        isLoggingEnabled = loggingEnabled
-    }
 }
 
 private extension AsyncFlow {
-    private func request(for apiRequest: APIRequest) -> URLRequest {
-        let request: URLRequest
+    private func request(for apiRequest: APIRequest,
+                         configuration: AsyncFlowConfiguration.Snapshot) -> URLRequest {
+        var request = URLRequest(
+            url: buildURL(for: apiRequest, baseURL: configuration.environment.baseURL)
+        )
+        request.httpMethod = apiRequest.httpMethod.rawValue
+        request.httpBody = apiRequest.body
 
-        if apiRequest.body != nil {
-            request = buildHttpBodyRequest(for: apiRequest)
-        } else {
-            request = urlRequestWithHeaders(for: apiRequest)
+        mergedHeaders(
+            for: apiRequest,
+            authorizationHeaderValue: configuration.authorizationHeaderValue
+        ).forEach {
+            request.setValue($0.value, forHTTPHeaderField: $0.key)
         }
 
         return request
     }
 
-    private func buildHttpBodyRequest(for apiRequest: APIRequest) -> URLRequest {
-        var request = urlRequestWithHeaders(for: apiRequest)
-        request.httpBody = apiRequest.body
-        request.httpMethod = apiRequest.httpMethod.rawValue
-        return request
+    private func buildURL(for apiRequest: APIRequest,
+                          baseURL: URL) -> URL {
+        guard var components = URLComponents(
+            url: baseURL,
+            resolvingAgainstBaseURL: false
+        ) else {
+            preconditionFailure("Invalid base URL: \(baseURL)")
+        }
+
+        components.path = normalizedPath(apiRequest.path)
+        components.queryItems = apiRequest.queryItems
+
+        guard let url = components.url else {
+            preconditionFailure("Invalid URL components: \(components)")
+        }
+
+        return url
     }
 
-    private func urlRequestWithHeaders(for endpoint: APIRequest) -> URLRequest {
-        var request = URLRequest(url: endpoint.url)
-        request.httpMethod = endpoint.httpMethod.rawValue
-        endpoint.headers.forEach({
-            request.setValue($0.value, forHTTPHeaderField: $0.key)
-        })
-        return request
+    private func normalizedPath(_ path: String) -> String {
+        guard path.hasPrefix("/") else {
+            return "/" + path
+        }
+
+        return path
     }
 
-    private func decodeResultsIfPossible<Model: Decodable>(_ data: Data, keyDecodingStrategy: JSONDecoder.KeyDecodingStrategy = .useDefaultKeys) throws -> Model {
+    private func mergedHeaders(for apiRequest: APIRequest,
+                               authorizationHeaderValue: String?) -> [String: String] {
+        var headers = [
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        ]
+
+        if let authorizationHeaderValue {
+            headers["Authorization"] = authorizationHeaderValue
+        }
+
+        apiRequest.headers.forEach {
+            headers[$0.key] = $0.value
+        }
+
+        return headers
+    }
+
+    private func decodeResultsIfPossible<Model: Decodable>(
+        _ data: Data,
+        keyDecodingStrategy: JSONDecoder.KeyDecodingStrategy = .useDefaultKeys
+    ) throws -> Model {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         decoder.keyDecodingStrategy = keyDecodingStrategy
@@ -121,15 +136,14 @@ private extension AsyncFlow {
         }
     }
 
-    private static func logResponseIfNeeded(for request: URLRequest, data: Data) {
+    private func logResponseIfNeeded(for request: URLRequest, data: Data) {
         guard isLoggingEnabled else { return }
 
         if let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []),
            let prettyData = try? JSONSerialization.data(withJSONObject: jsonObject, options: .prettyPrinted),
-           let prettyString = String(data: prettyData, encoding: .utf8) {
-            if let url = request.url {
-                print("Request: \(url.absoluteString)  \n JSON Response:\n\(prettyString)")
-            }
+           let prettyString = String(data: prettyData, encoding: .utf8),
+           let url = request.url {
+            print("Request: \(url.absoluteString)  \n JSON Response:\n\(prettyString)")
         }
     }
 }

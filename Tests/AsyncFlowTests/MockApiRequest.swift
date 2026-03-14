@@ -15,8 +15,15 @@ fileprivate struct User: Codable {
 
 struct MockApiRequest: APIRequest {
     var hasBody = false
+    var customHeaders: [String: String] = [:]
+    var customQueryItems: [URLQueryItem]? = nil
+    var customPath = "/mock/path"
 
-    var path: String { "/mock/path" }
+    var path: String { customPath }
+
+    var headers: [String: String] { customHeaders }
+
+    var queryItems: [URLQueryItem]? { customQueryItems }
 
     var body: Data? {
         guard hasBody else { return nil }

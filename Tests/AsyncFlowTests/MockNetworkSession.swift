@@ -13,8 +13,10 @@ final class MockNetworkSession: NetworkSession, @unchecked Sendable {
     var data: Data?
     var response: URLResponse?
     var error: Error?
+    private(set) var requests: [URLRequest] = []
 
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        requests.append(request)
         if let error = error { throw error }
         guard let data = data, let response = response else { throw APIError.invalidResponseType }
         return (data, response)
